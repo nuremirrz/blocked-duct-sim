@@ -1,10 +1,8 @@
 export type GameState =
   | 'overview'
   | 'measure_low'
-  | 'locate_grille'
-  | 'open_grille'
-  | 'replace_filter'
-  | 'close_grille'
+  | 'locate_block'
+  | 'move_wardrobe'
   | 'measure_ok'
   | 'complete'
 
@@ -16,14 +14,13 @@ export interface StateData {
   btnKey?: string
 }
 
-// Ordered flow for Problem 1 (dirty filter).
+// Ordered flow for Problem 2 (blocked supply). The whole diagnosis happens at the
+// supply: measure low → notice the wardrobe → slide it aside → measure normal.
 export const STATE_ORDER: GameState[] = [
   'overview',
   'measure_low',
-  'locate_grille',
-  'open_grille',
-  'replace_filter',
-  'close_grille',
+  'locate_block',
+  'move_wardrobe',
   'measure_ok',
   'complete',
 ]
@@ -39,22 +36,18 @@ export const STATE_DATA: Record<GameState, StateData> = {
     cameraPreset: 'supply_air',
     btnKey: 'state.measure.btn',
   },
-  locate_grille: {
-    hintKey: 'state.locate_grille.hint',
-    btnKey: 'state.locate_grille.btn',
+  locate_block: {
+    // No camera cut: we are already at the supply from measuring, and that view
+    // frames the wardrobe — the label + highlight move onto it (see labels.ts).
+    hintKey: 'state.locate_block.hint',
+    btnKey: 'state.locate_block.btn',
   },
-  open_grille: {
-    hintKey: 'state.open_grille.hint',
-    cameraPreset: 'return_air',
-    btnKey: 'state.open_grille.btn',
-  },
-  replace_filter: {
-    hintKey: 'state.replace_filter.hint',
-    btnKey: 'state.replace_filter.btn',
-  },
-  close_grille: {
-    hintKey: 'state.close_grille.hint',
-    btnKey: 'state.close_grille.btn',
+  move_wardrobe: {
+    // Bound to the supply view for now (duct + wardrobe in frame). A dedicated
+    // 'wardrobe' preset can be added later.
+    hintKey: 'state.move_wardrobe.hint',
+    cameraPreset: 'supply_air',
+    btnKey: 'state.move_wardrobe.btn',
   },
   measure_ok: {
     // Shares the button key with measure_low — one "Measure" label, no dupe.

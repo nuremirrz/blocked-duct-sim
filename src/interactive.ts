@@ -1,7 +1,6 @@
 import * as THREE from 'three'
 import type { SceneContext } from './scene'
-import type { GrilleApi } from './grille'
-import type { FilterApi } from './filter'
+import type { WardrobeApi } from './wardrobe'
 import { flyToCameraPresetByName, activeCameraPreset } from './cameras'
 
 interface ClickTarget {
@@ -15,10 +14,11 @@ interface ClickTarget {
   canAct?: () => boolean
 }
 
-/** Just enough of the HUD for the device's own button to work. */
+/** Just enough of the HUD for direct clicks on objects to drive the same steps. */
 interface ReadingTaker {
   takeReading: () => void
   canTakeReading: () => boolean
+  canMoveWardrobe: () => boolean
 }
 
 // A press that travels further than this (in px) is an orbit drag, not a click.
@@ -26,14 +26,14 @@ const DRAG_SLOP = 5
 
 /**
  * Makes the level's objects hoverable and clickable. A click means "get closer"
- * until you are there, and "interact" once you are — so the grille flies you in
- * first, then opens and shuts on further clicks. OrbitControls keeps working;
- * drags are told apart from clicks by how far the pointer travelled.
+ * until you are there, and "interact" once you are — so a far click flies you to
+ * the supply, and once framed a click on the wardrobe slides it aside.
+ * OrbitControls keeps working; drags are told apart from clicks by how far the
+ * pointer travelled.
  */
 export function createInteractions(
   ctx: SceneContext,
-  grille: GrilleApi,
-  filter: FilterApi,
+  wardrobe: WardrobeApi,
   hud: ReadingTaker,
 ): void {
   // Keys are GLB object names; `preset` is the camera preset they fly to.
@@ -46,15 +46,13 @@ export function createInteractions(
       act: () => hud.takeReading(),
       canAct: () => hud.canTakeReading(),
     },
-    return_grille: { preset: 'return_air', act: () => grille.toggle() },
-    // The filter sits right behind the grille, so the return camera already frames
-    // it — no point flying closer, but it is very much clickable from there.
-    // While the grille is shut it also blocks the ray, so it cannot be reached
-    // through a closed grille without any explicit check.
-    filter: {
-      preset: 'air_filter',
-      redundantFrom: ['return_air'],
-      act: () => filter.replace(),
+    // The wardrobe sits in the supply view, so from there a click is its own
+    // button; canMoveWardrobe gates it to the move step so an early click on an
+    // earlier state does nothing.
+    wardrobe: {
+      preset: 'supply_air',
+      act: () => wardrobe.moveAway(),
+      canAct: () => hud.canMoveWardrobe(),
     },
   }
 

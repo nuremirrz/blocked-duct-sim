@@ -10,8 +10,7 @@ import {
 } from './state'
 import { flyToCameraPresetByName, activeCameraPreset } from './cameras'
 import { createAnemometer } from './anemometer'
-import type { GrilleApi } from './grille'
-import type { FilterApi } from './filter'
+import type { WardrobeApi } from './wardrobe'
 import type { HintsApi } from './labels'
 import type { OverlayApi } from './overlay'
 import { t, onChange } from './i18n'
@@ -34,17 +33,18 @@ export interface HudApi {
   takeReading: () => void
   /** True while a reading is waiting to be taken on this step. */
   canTakeReading: () => boolean
+  /** True only on the move-wardrobe step, so a direct click can slide it then. */
+  canMoveWardrobe: () => boolean
 }
 
 /**
  * Builds the gameplay HUD (progress + hint + anemometer + action button) and
- * drives the Problem 1 state machine. Camera cuts and the level-complete
+ * drives the Problem 2 state machine. Camera cuts and the level-complete
  * postMessage fire on the relevant state entries.
  */
 export function createHud(
   ctx: SceneContext,
-  grille: GrilleApi,
-  filter: FilterApi,
+  wardrobe: WardrobeApi,
   hints: HintsApi,
   overlay: OverlayApi,
 ): HudApi {
@@ -171,10 +171,7 @@ export function createHud(
   // routes cannot disagree — and a goal that is already met is simply skipped.
   const objectives: Partial<Record<GameState, () => boolean>> = {
     overview: () => activeCameraPreset() === 'supply_air',
-    locate_grille: () => activeCameraPreset() === 'return_air',
-    open_grille: () => grille.isOpen(),
-    replace_filter: () => filter.isReplaced(),
-    close_grille: () => grille.isClosed(),
+    move_wardrobe: () => wardrobe.isMovedAway(),
   }
 
   ctx.onFrame(() => {
@@ -190,6 +187,10 @@ export function createHud(
     paint(machine.state, machine.data)
   }
 
+  // A direct click on the wardrobe only slides it on its own step; elsewhere the
+  // object is inert, so an early click cannot skip the flow.
+  const canMoveWardrobe = () => machine.state === 'move_wardrobe'
+
   actionBtn.addEventListener('click', () => {
     // First press on a measuring step takes the reading and stays put.
     if (canTakeReading()) {
@@ -202,19 +203,11 @@ export function createHud(
       case 'overview':
         flyToCameraPresetByName(ctx, 'supply_air')
         break
-      case 'locate_grille':
-        flyToCameraPresetByName(ctx, 'return_air')
+      case 'move_wardrobe':
+        wardrobe.moveAway()
         break
-      case 'open_grille':
-        grille.open()
-        break
-      case 'replace_filter':
-        filter.replace()
-        break
-      case 'close_grille':
-        grille.close()
-        break
-      // Measuring steps have no object to act on, so "Далее" moves on directly.
+      // 'locate_block' ("Осмотреть", just an acknowledgement) and the measuring
+      // steps' "Далее" have no object to change, so they step the flow on.
       default:
         machine.advance()
     }
@@ -229,6 +222,7 @@ export function createHud(
     syncModel: () => paint(machine.state, machine.data),
     takeReading,
     canTakeReading,
+    canMoveWardrobe,
   }
 }
 
@@ -236,7 +230,7 @@ export function createHud(
 function notifyParentComplete(): void {
   if (window.parent === window) return
   window.parent.postMessage(
-    { source: 'hvac-sim', type: 'level-complete', slug: 'dirty-filter' },
+    { source: 'hvac-sim', type: 'level-complete', slug: 'blocked-duct' },
     '*',
   )
 }

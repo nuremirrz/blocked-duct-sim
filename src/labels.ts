@@ -6,18 +6,15 @@ import { t, onChange } from './i18n'
 // GLB object each label rides on, and its i18n key.
 const LABELS: { object: string; key: string }[] = [
   { object: 'supply_duct', key: 'label.supply' },
-  { object: 'return_grille', key: 'label.return' },
-  { object: 'filter', key: 'label.filter' },
+  { object: 'wardrobe', key: 'label.wardrobe' },
 ]
 
 // Which object the current step points at. States absent from this map show
 // nothing (overview = clean start, complete = solved).
 const STATE_TARGET: Partial<Record<GameState, string>> = {
   measure_low: 'supply_duct',
-  locate_grille: 'return_grille',
-  open_grille: 'return_grille',
-  replace_filter: 'filter',
-  close_grille: 'return_grille',
+  locate_block: 'wardrobe',
+  move_wardrobe: 'wardrobe',
   measure_ok: 'supply_duct',
 }
 

@@ -3,8 +3,7 @@ import { loadModel } from './loader'
 import { applyStartCamera, initCameraMotion, createCameraSwitcher } from './cameras'
 import { createHud } from './hud'
 import { createInteractions } from './interactive'
-import { createGrille } from './grille'
-import { createFilter } from './filter'
+import { createWardrobe } from './wardrobe'
 import { createHints } from './labels'
 import { createResultOverlay } from './overlay'
 import { setLang, getInitialLang, initLocaleBridge, onChange, getLang, t } from './i18n'
@@ -33,14 +32,12 @@ const ctx = createScene(container)
 initCameraMotion(ctx)
 applyStartCamera(ctx)
 createCameraSwitcher(ctx)
-// Shared props: the scripted buttons and direct clicks drive the same objects.
-const grille = createGrille(ctx)
-// The filter sits behind the grille, so it cannot be swapped until it is aside.
-const filter = createFilter(ctx, () => grille.isOpen())
+// Shared prop: the scripted button and a direct click both slide the wardrobe.
+const wardrobe = createWardrobe(ctx)
 // 3D labels + active-object highlight, driven by the HUD's state changes.
 const hints = createHints(ctx)
 // Level-complete result card (shown on the final state; Restart reloads).
 const overlay = createResultOverlay()
-const hud = createHud(ctx, grille, filter, hints, overlay)
-createInteractions(ctx, grille, filter, hud)
+const hud = createHud(ctx, wardrobe, hints, overlay)
+createInteractions(ctx, wardrobe, hud)
 loadModel(ctx, () => hud.syncModel())
