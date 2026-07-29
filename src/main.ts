@@ -1,6 +1,10 @@
 import { createScene } from './scene'
 import { loadModel } from './loader'
-import { applyStartCamera, initCameraMotion, createCameraSwitcher } from './cameras'
+import { applyStartCamera, initCameraMotion } from './cameras'
+import { createCameraStrip } from './camerastrip'
+import { createInspect } from './inspect'
+import { createBreadcrumbs } from './breadcrumbs'
+import { createInventory } from './inventory'
 import { createHud } from './hud'
 import { createInteractions } from './interactive'
 import { createWardrobe } from './wardrobe'
@@ -31,7 +35,11 @@ onChange(applyDocumentMeta)
 const ctx = createScene(container)
 initCameraMotion(ctx)
 applyStartCamera(ctx)
-createCameraSwitcher(ctx)
+// Bottom-left camera strip: thumbnail per preset (stills captured after load).
+const cameraStrip = createCameraStrip(ctx)
+// "Look closer" inspect view + top-center breadcrumbs that reflect the location.
+const inspect = createInspect(ctx)
+createBreadcrumbs(ctx, inspect)
 // Shared prop: the scripted button and a direct click both slide the wardrobe.
 const wardrobe = createWardrobe(ctx)
 // 3D labels + active-object highlight, driven by the HUD's state changes.
@@ -40,4 +48,10 @@ const hints = createHints(ctx)
 const overlay = createResultOverlay()
 const hud = createHud(ctx, wardrobe, hints, overlay)
 createInteractions(ctx, wardrobe, hud)
-loadModel(ctx, () => hud.syncModel())
+// Bottom-right inventory drawer: drag the anemometer onto the supply to measure.
+const inventory = createInventory(ctx, hud)
+loadModel(ctx, () => {
+  hud.syncModel()
+  cameraStrip.capture() // snapshot each preset now the model is in the scene
+  inventory.syncModel() // render tool icons from the model
+})

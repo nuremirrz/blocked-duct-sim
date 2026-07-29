@@ -1,6 +1,5 @@
 import * as THREE from 'three'
 import type { SceneContext } from './scene'
-import { t, onChange } from './i18n'
 
 export interface CameraPreset {
   name: string
@@ -36,6 +35,21 @@ export const CAMERA_PRESETS: CameraPreset[] = [
 // already looking through a given object's camera.
 let activePreset: string | null = null
 
+// Fires whenever the camera is sent to a preset (cut or flight). The inspect
+// view listens so it can drop its "closer look" state once the camera leaves.
+const presetListeners = new Set<() => void>()
+
+/** Subscribes to "camera sent to a preset" events; returns an unsubscribe fn. */
+export function onPresetFly(cb: () => void): () => void {
+  presetListeners.add(cb)
+  return () => presetListeners.delete(cb)
+}
+
+function goToPreset(name: string): void {
+  activePreset = name
+  for (const cb of presetListeners) cb()
+}
+
 /** Name of the preset the camera was last sent to, if any. */
 export function activeCameraPreset(): string | null {
   return activePreset
@@ -43,7 +57,7 @@ export function activeCameraPreset(): string | null {
 
 /** Snaps the camera + OrbitControls target to a preset pose (instant cut). */
 export function applyCameraPreset(ctx: SceneContext, preset: CameraPreset): void {
-  activePreset = preset.name
+  goToPreset(preset.name)
   ctx.camera.position.set(preset.position.x, preset.position.y, preset.position.z)
   ctx.controls.target.set(preset.target.x, preset.target.y, preset.target.z)
   ctx.controls.update()
@@ -94,12 +108,26 @@ export function flyToCameraPreset(
   preset: CameraPreset,
   duration = 0.8,
 ): void {
-  activePreset = preset.name
+  goToPreset(preset.name)
+  flyToPose(ctx, preset.position, preset.target, duration)
+}
+
+/**
+ * Flies to an arbitrary pose without changing the active preset. Used by the
+ * inspect view to close in on the current station's object and back out again,
+ * so the strip/breadcrumbs keep showing that station throughout.
+ */
+export function flyToPose(
+  ctx: SceneContext,
+  position: { x: number; y: number; z: number },
+  target: { x: number; y: number; z: number },
+  duration = 0.6,
+): void {
   flight = {
     fromPos: ctx.camera.position.clone(),
-    toPos: new THREE.Vector3(preset.position.x, preset.position.y, preset.position.z),
+    toPos: new THREE.Vector3(position.x, position.y, position.z),
     fromTarget: ctx.controls.target.clone(),
-    toTarget: new THREE.Vector3(preset.target.x, preset.target.y, preset.target.z),
+    toTarget: new THREE.Vector3(target.x, target.y, target.z),
     elapsed: 0,
     duration,
   }
@@ -111,71 +139,4 @@ export function flyToCameraPresetByName(ctx: SceneContext, name: string): boolea
   if (!preset) return false
   flyToCameraPreset(ctx, preset)
   return true
-}
-
-/** A styled button for the camera panel. */
-function makeButton(label: string): HTMLButtonElement {
-  const btn = document.createElement('button')
-  btn.textContent = label
-  btn.style.cssText = [
-    'padding:8px 10px',
-    'background:#333',
-    'color:#fff',
-    'border:1px solid #555',
-    'border-radius:6px',
-    'cursor:pointer',
-    'font:inherit',
-    'text-align:left',
-  ].join(';')
-  btn.addEventListener('mouseenter', () => (btn.style.background = '#444'))
-  btn.addEventListener('mouseleave', () => (btn.style.background = '#333'))
-  return btn
-}
-
-/**
- * Fixed-camera panel (bottom-right): one button per preset that flies the camera
- * to it. Buttons are labelled with the preset names.
- */
-export function createCameraSwitcher(ctx: SceneContext): void {
-  const panel = document.createElement('div')
-  panel.style.cssText = [
-    'position:fixed',
-    'bottom:12px',
-    'right:12px',
-    'z-index:10',
-    'display:flex',
-    'flex-direction:column',
-    'gap:8px',
-    'min-width:180px',
-    'font-family:system-ui,-apple-system,sans-serif',
-    'font-size:13px',
-  ].join(';')
-
-  const header = document.createElement('div')
-  header.style.cssText = [
-    'padding:8px 10px',
-    'background:rgba(0,0,0,0.6)',
-    'color:#eee',
-    'border-radius:6px',
-  ].join(';')
-  panel.appendChild(header)
-
-  // Keep button→preset pairs so captions can be re-localized without rebuilding.
-  const buttons: { el: HTMLButtonElement; preset: CameraPreset }[] = []
-  for (const preset of CAMERA_PRESETS) {
-    const el = makeButton('')
-    el.addEventListener('click', () => flyToCameraPreset(ctx, preset)) // preset.name unchanged
-    panel.appendChild(el)
-    buttons.push({ el, preset })
-  }
-
-  // Only the visible caption is localized; preset.name stays the identifier.
-  const fill = () => {
-    header.textContent = `📷 ${t('camera.panel')}`
-    for (const { el, preset } of buttons) el.textContent = t(`camera.${preset.name}`)
-  }
-  fill()
-  onChange(fill) // re-render on locale change (set-locale / ?lang)
-
-  document.body.appendChild(panel)
 }
