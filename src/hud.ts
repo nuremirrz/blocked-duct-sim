@@ -24,8 +24,6 @@ export interface HudApi {
   takeReading: () => void
   /** True while a reading is waiting to be taken on this step. */
   canTakeReading: () => boolean
-  /** True only on the move-wardrobe step, so a direct click can slide it then. */
-  canMoveWardrobe: () => boolean
 }
 
 /**
@@ -134,8 +132,17 @@ export function createHud(
     move_wardrobe: () => wardrobe.isMovedAway(),
   }
 
+  // Advance on met objectives; also watch the wardrobe, since sliding it by a
+  // direct click while the flow sits on another step changes no game state — so
+  // repaint (the reading + checklist track its position) and note a healthy read.
+  let lastMoved = false
   ctx.onFrame(() => {
     if (objectives[machine.state]?.()) machine.advance()
+    if (wardrobe.isMovedAway() !== lastMoved) {
+      lastMoved = wardrobe.isMovedAway()
+      if (measured && wardrobe.isMovedAway()) airflowRechecked = true
+      paint(machine.state, machine.data)
+    }
   })
 
   // Taking the reading is one action with two triggers — this button and a click
@@ -149,10 +156,6 @@ export function createHud(
     if (wardrobe.isMovedAway()) airflowRechecked = true
     paint(machine.state, machine.data)
   }
-
-  // A direct click on the wardrobe only slides it on its own step; elsewhere the
-  // object is inert, so an early click cannot skip the flow.
-  const canMoveWardrobe = () => machine.state === 'move_wardrobe'
 
   actionBtn.addEventListener('click', () => {
     // First press on a measuring step takes the reading and stays put.
@@ -169,8 +172,18 @@ export function createHud(
       case 'move_wardrobe':
         wardrobe.moveAway()
         break
-      // 'locate_block' ("Look around", an acknowledgement) and the measuring
-      // steps' "Continue" have no object to change, so they step the flow on.
+      case 'measure_low':
+        // Airflow already healthy (wardrobe cleared early) → problem solved, so
+        // skip the diagnose/clear steps straight to the finish.
+        if (wardrobe.isMovedAway()) machine.jumpTo('complete')
+        else machine.advance()
+        break
+      case 'measure_ok':
+        // Only finish once the airflow actually reads healthy; if the wardrobe
+        // was put back the supply is blocked again, so wait until it's cleared.
+        if (wardrobe.isMovedAway()) machine.advance()
+        break
+      // 'locate_block' ("Look around") just acknowledges and steps the flow on.
       default:
         machine.advance()
     }
@@ -185,7 +198,6 @@ export function createHud(
     syncModel: () => paint(machine.state, machine.data),
     takeReading,
     canTakeReading,
-    canMoveWardrobe,
   }
 }
 

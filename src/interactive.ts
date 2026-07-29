@@ -18,7 +18,6 @@ interface ClickTarget {
 interface ReadingTaker {
   takeReading: () => void
   canTakeReading: () => boolean
-  canMoveWardrobe: () => boolean
 }
 
 // A press that travels further than this (in px) is an orbit drag, not a click.
@@ -47,12 +46,11 @@ export function createInteractions(
       canAct: () => hud.canTakeReading(),
     },
     // The wardrobe sits in the supply view, so from there a click is its own
-    // button; canMoveWardrobe gates it to the move step so an early click on an
-    // earlier state does nothing.
+    // button. It slides freely either way at any time — move it aside or put it
+    // back — and the airflow reading tracks whichever side it ends up on.
     wardrobe: {
       preset: 'supply_air',
-      act: () => wardrobe.moveAway(),
-      canAct: () => hud.canMoveWardrobe(),
+      act: () => wardrobe.toggle(),
     },
   }
 

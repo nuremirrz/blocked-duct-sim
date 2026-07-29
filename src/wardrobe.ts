@@ -35,6 +35,8 @@ const smoothstep = (t: number) => t * t * (3 - 2 * t)
 export interface WardrobeApi {
   /** Rolls the wardrobe aside to uncover the supply. Idempotent while sliding. */
   moveAway: () => void
+  /** Slides it the other way from where it is now: aside if home, home if aside. */
+  toggle: () => void
   /** True only once it has fully slid aside — not while it is still moving. */
   isMovedAway: () => boolean
   /** Returns it to its original spot (e.g. for a restart). */
@@ -79,6 +81,10 @@ export function createWardrobe(ctx: SceneContext): WardrobeApi {
     moveAway: () => {
       resolve()
       target = 1
+    },
+    toggle: () => {
+      resolve()
+      target = target === 1 ? 0 : 1
     },
     isMovedAway: () => progress >= 1,
     reset: () => {

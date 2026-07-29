@@ -104,4 +104,12 @@ export class StateMachine {
       this.onChange(this.state, this.data)
     }
   }
+
+  /** Jumps straight to a later state, skipping the steps in between. */
+  jumpTo(state: GameState): void {
+    const target = STATE_ORDER.indexOf(state)
+    if (target <= this.index) return // only ever skip forward
+    this.index = target
+    this.onChange(this.state, this.data)
+  }
 }
