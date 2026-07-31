@@ -22,6 +22,8 @@ import {
 import { createWardrobe } from './wardrobe'
 import { dict } from './dictionary'
 import {
+  CAMERAS,
+  INSPECTABLE,
   LABELS,
   TASKS,
   createClickTargets,
@@ -55,7 +57,7 @@ onChange(applyDocumentMeta)
 
 // Boot the scene, start on the overview camera (before the first frame), mount
 // the gameplay HUD, then load the model.
-const ctx = createScene(container)
+const ctx = createScene(container, { cameras: CAMERAS, inspectable: INSPECTABLE })
 initCameraMotion(ctx)
 applyStartCamera(ctx)
 // Bottom-left camera strip: thumbnail per preset (stills captured after load).
