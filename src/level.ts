@@ -31,15 +31,10 @@ export const CAMERAS: CameraPreset[] = [
     position: { x: 2.05, y: 0.19, z: -0.34 },
     target: { x: 2.05, y: 2.84, z: 0.71 },
   },
-  {
-    name: 'air_filter',
-    position: { x: 2.01, y: 1.44, z: 0.68 },
-    target: { x: 2.01, y: 3.13, z: 0.71 },
-  },
 ]
 
 // Stations you can look closer at — everything except the wide overview.
-export const INSPECTABLE = ['supply_air', 'return_air', 'air_filter']
+export const INSPECTABLE = ['supply_air', 'return_air']
 
 export type GameState =
   | 'overview'
@@ -146,10 +141,9 @@ export function createStateConfig(
         hintKey: 'state.complete.hint',
       },
     },
-    // Airflow at the supply, in m/s. It depends on whether the supply is blocked,
-    // not on the step: the wardrobe chokes the flow (low), moving it aside restores
-    // it (healthy). The anemometer reads whichever is physically true when measured.
-    airflow: { low: 0.7, ok: 2.5, normMin: 2, normMax: 3.5 },
+    // Healthy band, in m/s. What the device actually reads is HudConfig.reading:
+    // the wardrobe chokes the flow (0.7), moving it aside restores it (2.5).
+    airflow: { normMin: 2, normMax: 3.5 },
   }
 }
 

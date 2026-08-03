@@ -76,7 +76,7 @@ const overlay = createResultOverlay()
 const hud = createHud<GameState, TaskProgress>(ctx, {
   states,
   tasks: TASKS,
-  isFaultCleared: () => wardrobe.isMovedAway(),
+  reading: () => (wardrobe.isMovedAway() ? 2.5 : 0.7),
   progress: (base) => ({ ...base, blockCleared: wardrobe.isMovedAway() }),
   slug: 'blocked-duct',
   hints,
