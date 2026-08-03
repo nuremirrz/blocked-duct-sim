@@ -1,5 +1,6 @@
 import {
   applyStartCamera,
+  createAirflowVisuals,
   createBreadcrumbs,
   createCameraStrip,
   createHints,
@@ -26,7 +27,9 @@ import {
   INSPECTABLE,
   LABELS,
   TASKS,
+  createAirflowConfig,
   createClickTargets,
+  createFlow,
   createStateConfig,
   createTools,
   type GameState,
@@ -69,6 +72,8 @@ createBreadcrumbs(ctx, inspect)
 const wardrobe = createWardrobe(ctx)
 // The flow's isDone/onAction close over the prop, so it is built after it.
 const states = createStateConfig(ctx, wardrobe)
+// Airflow at the supply; the device and the visible stream share it.
+const flow = createFlow(wardrobe)
 // 3D labels + active-object highlight, driven by the HUD's state changes.
 const hints = createHints(ctx, LABELS)
 // Level-complete result card (shown on the final state; Restart reloads).
@@ -76,12 +81,14 @@ const overlay = createResultOverlay()
 const hud = createHud<GameState, TaskProgress>(ctx, {
   states,
   tasks: TASKS,
-  reading: () => (wardrobe.isMovedAway() ? 2.5 : 0.7),
+  reading: flow,
   progress: (base) => ({ ...base, blockCleared: wardrobe.isMovedAway() }),
   slug: 'blocked-duct',
   hints,
   overlay,
 })
+// Visible airflow out of the supply register.
+createAirflowVisuals(ctx, createAirflowConfig(flow))
 createInteractions(ctx, { clickTargets: createClickTargets(wardrobe, hud) })
 // Bottom-right inventory drawer: drag the anemometer onto the supply to measure.
 const inventory = createInventory(ctx, { tools: createTools(hud) })
