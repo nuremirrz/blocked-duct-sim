@@ -1,13 +1,11 @@
 import {
   activeCameraPreset,
-  flyToCameraPresetByName,
   type AirflowVisual,
   type CameraPreset,
   type ClickTarget,
   type HudProgressBase,
   type LabelConfig,
   type ReadingTaker,
-  type SceneContext,
   type StateConfig,
   type TaskConfig,
   type Tool,
@@ -97,27 +95,20 @@ export const TASKS: TaskConfig<TaskProgress>[] = [
  * route: a direct click on the object changes the same world, and the poll picks
  * it up.
  */
-export function createStateConfig(
-  ctx: SceneContext,
-  wardrobe: WardrobeApi,
-): StateConfig<GameState> {
+export function createStateConfig(wardrobe: WardrobeApi): StateConfig<GameState> {
   return {
     order: ['overview', 'measure_low', 'locate_block', 'move_wardrobe', 'measure_ok', 'complete'],
     data: {
       overview: {
         hintKey: 'state.overview.hint',
         cameraPreset: 'system_overview',
-        btnKey: 'state.overview.btn',
+        // Getting to the supply is the step: click the register or take the
+        // camera strip there.
         isDone: () => activeCameraPreset() === 'supply_air',
-        onAction: (flow) => {
-          flyToCameraPresetByName(ctx, 'supply_air')
-          flow.advance()
-        },
       },
       measure_low: {
         hintKey: 'state.measure_low.hint',
         cameraPreset: 'supply_air',
-        btnKey: 'state.measure.btn',
         measuring: true,
         // Airflow already healthy (wardrobe cleared early) → problem solved, so
         // skip the diagnose/clear steps straight to the finish.
@@ -126,27 +117,25 @@ export function createStateConfig(
       locate_block: {
         // No camera cut: we are already at the supply from measuring, and that
         // view frames the wardrobe — the label + highlight move onto it.
+        //
+        // Finding the blockage and clearing it are one act for the player, so
+        // this shares move_wardrobe's goal: the vague hint stands until the
+        // wardrobe actually moves, and move_wardrobe is then already met and
+        // skipped. Naming the wardrobe out loud is left to that step, which the
+        // player only ever sees if they slide it back and have to be told.
         hintKey: 'state.locate_block.hint',
-        btnKey: 'state.locate_block.btn',
-        // No onAction → the button just advances: "Look around" acknowledges.
+        isDone: () => wardrobe.isMovedAway(),
       },
       move_wardrobe: {
         // Bound to the supply view for now (duct + wardrobe in frame). A dedicated
         // 'wardrobe' preset can be added later.
         hintKey: 'state.move_wardrobe.hint',
         cameraPreset: 'supply_air',
-        btnKey: 'state.move_wardrobe.btn',
         isDone: () => wardrobe.isMovedAway(),
-        onAction: (flow) => {
-          wardrobe.moveAway()
-          flow.advance()
-        },
       },
       measure_ok: {
-        // Shares the button key with measure_low — one "Measure" label, no dupe.
         hintKey: 'state.measure_ok.hint',
         cameraPreset: 'supply_air',
-        btnKey: 'state.measure.btn',
         measuring: true,
         // Only finish once the airflow actually reads healthy; if the wardrobe
         // was put back the supply is blocked again, so wait until it's cleared.

@@ -68,10 +68,10 @@ const cameraStrip = createCameraStrip(ctx)
 // "Look closer" inspect view + top-center breadcrumbs that reflect the location.
 const inspect = createInspect(ctx)
 createBreadcrumbs(ctx, inspect)
-// Shared prop: the scripted button and a direct click both slide the wardrobe.
+// Shared prop: a direct click and the inventory tool both slide the wardrobe.
 const wardrobe = createWardrobe(ctx)
-// The flow's isDone/onAction close over the prop, so it is built after it.
-const states = createStateConfig(ctx, wardrobe)
+// The flow's isDone closes over the prop, so it is built after it.
+const states = createStateConfig(wardrobe)
 // Airflow at the supply; the device and the visible stream share it.
 const flow = createFlow(wardrobe)
 // 3D labels + active-object highlight, driven by the HUD's state changes.
