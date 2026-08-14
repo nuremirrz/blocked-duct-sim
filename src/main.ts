@@ -32,7 +32,6 @@ import {
   createFlow,
   createStateConfig,
   createTools,
-  swapClosetAndBed,
   type GameState,
   type TaskProgress,
 } from './level'
@@ -64,7 +63,7 @@ onChange(applyDocumentMeta)
 const ctx = createScene(container, {
   cameras: CAMERAS,
   inspectable: INSPECTABLE,
-  model: 'House_final.glb',
+  model: 'House_final2.glb',
 })
 initCameraMotion(ctx)
 applyStartCamera(ctx)
@@ -98,9 +97,6 @@ createInteractions(ctx, { clickTargets: createClickTargets(wardrobe, hud) })
 // Bottom-right inventory drawer: drag the anemometer onto the supply to measure.
 const inventory = createInventory(ctx, { tools: createTools(hud) })
 loadModel(ctx, () => {
-  // Before anything reads the closet's position — the wardrobe caches its home
-  // spot the first frame it resolves the node, and that has to be the new one.
-  swapClosetAndBed(ctx)
   hud.syncModel()
   cameraStrip.capture() // snapshot each preset now the model is in the scene
   inventory.syncModel() // render tool icons from the model

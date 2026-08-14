@@ -1,4 +1,3 @@
-import * as THREE from 'three'
 import {
   activeCameraPreset,
   type AirflowVisual,
@@ -7,7 +6,6 @@ import {
   type HudProgressBase,
   type LabelConfig,
   type ReadingTaker,
-  type SceneContext,
   type StateConfig,
   type TaskConfig,
   type Tool,
@@ -17,11 +15,11 @@ import type { WardrobeApi } from './wardrobe'
 // Fixed inspection viewpoints, named for the HVAC stage each one frames. The
 // coordinates belong to this level's model; the first is the starting camera.
 //
-// Re-aimed for House_final.glb. The wide shot frames the whole house, which is
-// deep now (7.7 across Z, was a near-flat 4.85). The supply station is pulled
-// back and swung between the diffuser and the closet so both are in one frame —
-// this level is about the thing standing in the way, so the two have to be seen
-// together rather than the register alone.
+// Re-aimed for House_final2.glb. The wide shot frames the whole house, which is
+// deep now (7.7 across Z, was a near-flat 4.85). The supply station looks
+// straight into the bedroom the diffuser feeds, so the register and the wardrobe
+// standing under it are one shot — this level is about the thing in the way, and
+// the two have to be seen together rather than the register alone.
 export const CAMERAS: CameraPreset[] = [
   {
     name: 'system_overview',
@@ -42,36 +40,6 @@ export const CAMERAS: CameraPreset[] = [
 
 // Stations you can look closer at — everything except the wide overview.
 export const INSPECTABLE = ['supply_air', 'return_air']
-
-/**
- * Swaps the closet with the bed it shares the house with.
- *
- * The model parks the closet out by the return grille, a room away from the
- * diffuser this level is about — so "the closet is blocking the supply" reads as
- * a claim about something off-screen. The bed stands in the bedroom the diffuser
- * feeds, which is where the closet needs to be, so the two trade places.
- *
- * Only the floor plane is swapped. Each keeps its own height: they sit on the
- * same floor but are 2.74 and 0.91 tall, and trading Y as well would bury one
- * and float the other. Positions are swapped in world space and converted back
- * through each parent, since the two nodes hang off different ones.
- */
-export function swapClosetAndBed(ctx: SceneContext): void {
-  const closet = ctx.scene.getObjectByName('closet')
-  const bed = ctx.scene.getObjectByName('bed_1')
-  if (!closet || !bed) return
-
-  const closetAt = closet.getWorldPosition(new THREE.Vector3())
-  const bedAt = bed.getWorldPosition(new THREE.Vector3())
-
-  const place = (obj: THREE.Object3D, x: number, z: number, keepY: number) => {
-    const world = new THREE.Vector3(x, keepY, z)
-    obj.parent?.worldToLocal(world)
-    obj.position.copy(world)
-  }
-  place(closet, bedAt.x, bedAt.z, closetAt.y)
-  place(bed, closetAt.x, closetAt.z, bedAt.y)
-}
 
 /**
  * Airflow at the supply, in m/s: the wardrobe chokes it, moving it aside
@@ -110,7 +78,7 @@ export const LABELS: LabelConfig[] = [
     activeOnStates: ['measure_low', 'measure_ok'],
   },
   {
-    objectName: 'closet',
+    objectName: 'wardrobe',
     labelKey: 'label.wardrobe',
     activeOnStates: ['locate_block', 'move_wardrobe'],
   },
@@ -221,6 +189,6 @@ export function createClickTargets(wardrobe: WardrobeApi, hud: ReadingTaker): Cl
     // The wardrobe sits in the supply view, so from there a click is its own
     // button. It slides freely either way at any time — move it aside or put it
     // back — and the airflow reading tracks whichever side it ends up on.
-    { objectName: 'closet', preset: 'supply_air', act: () => wardrobe.toggle() },
+    { objectName: 'wardrobe', preset: 'supply_air', act: () => wardrobe.toggle() },
   ]
 }

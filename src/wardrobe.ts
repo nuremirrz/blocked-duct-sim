@@ -1,29 +1,28 @@
 import * as THREE from 'three'
 import type { SceneContext } from '@hvac/engine'
 
-// House_final.glb calls it `closet`; the old blockout model called it `wardrobe`.
-const WARDROBE_NAME = 'closet'
+const WARDROBE_NAME = 'wardrobe'
 
 /**
- * How the closet rolls aside to clear the blocked supply.
+ * How the wardrobe rolls aside to clear the blocked supply.
  *
- * ── Re-measured for House_final.glb ──────────────────────────────────────────
+ * ── Re-measured for House_final2.glb ─────────────────────────────────────────
  * Read off the GLB rather than dialled in by eye:
- *   • closet world AABB X[5.40..6.02] Z[-0.22..1.64], 2.74 tall;
- *   • the bedroom diffuser it stands beside: ceiling, X[6.55..7.09];
- *   • −X is open floor all the way to the far bedroom; the ceiling sits at 2.84,
- *     just above the closet, so it passes under everything on the way.
- * Sliding −X by 1.20 takes it to X[4.20..4.82] — clear of the diffuser and
- * visibly away from it, which is the whole point of the step. The camera looks
- * back along −X, so the move reads as pushing the closet away from the vent.
- *
- * To retune: `axis` is the floor axis ('x' or 'z', never 'y'); `delta` is metres,
- * sign flips direction. Keep |delta| under ~9 on −X (far wall at −5.05).
+ *   • wardrobe world AABB X[6.27..7.32] Z[0.79..2.46], 2.79 tall;
+ *   • the bedroom diffuser it blocks: ceiling, X[6.55..7.09] Z[0.28..1.17] —
+ *     entirely inside the wardrobe's span on X, so it really is in the way;
+ *   • +Z is the depth of the room, open floor as far as the back wall at 4.24;
+ *     the ceiling at 2.84 clears the wardrobe's 2.795 by a hair, so it passes
+ *     under everything on the way.
+ * Sliding +Z by 1.30 takes it to Z[2.09..3.76], past the diffuser's far edge at
+ * 1.17 and well short of the back wall. The station looks into the room along
+ * +Z, so the wardrobe recedes and uncovers the register instead of crossing the
+ * lens — which is what a move on X or −Z would do from there.
  *
  * NB: this offsets the object's LOCAL position (like grille.ts), which equals its
  * world position here (parent is identity — local == world when measured).
  */
-const MOVE_OFFSET: { axis: 'x' | 'z'; delta: number } = { axis: 'x', delta: -1.2 }
+const MOVE_OFFSET: { axis: 'x' | 'z'; delta: number } = { axis: 'z', delta: 1.3 }
 
 // Slide duration, matched to the grille's easing feel (~0.8s, smooth in/out).
 const SLIDE_SECONDS = 0.8
