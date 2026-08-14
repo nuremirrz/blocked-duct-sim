@@ -32,6 +32,7 @@ import {
   createFlow,
   createStateConfig,
   createTools,
+  swapClosetAndBed,
   type GameState,
   type TaskProgress,
 } from './level'
@@ -60,7 +61,11 @@ onChange(applyDocumentMeta)
 
 // Boot the scene, start on the overview camera (before the first frame), mount
 // the gameplay HUD, then load the model.
-const ctx = createScene(container, { cameras: CAMERAS, inspectable: INSPECTABLE })
+const ctx = createScene(container, {
+  cameras: CAMERAS,
+  inspectable: INSPECTABLE,
+  model: 'House_final.glb',
+})
 initCameraMotion(ctx)
 applyStartCamera(ctx)
 // Bottom-left camera strip: thumbnail per preset (stills captured after load).
@@ -93,6 +98,9 @@ createInteractions(ctx, { clickTargets: createClickTargets(wardrobe, hud) })
 // Bottom-right inventory drawer: drag the anemometer onto the supply to measure.
 const inventory = createInventory(ctx, { tools: createTools(hud) })
 loadModel(ctx, () => {
+  // Before anything reads the closet's position — the wardrobe caches its home
+  // spot the first frame it resolves the node, and that has to be the new one.
+  swapClosetAndBed(ctx)
   hud.syncModel()
   cameraStrip.capture() // snapshot each preset now the model is in the scene
   inventory.syncModel() // render tool icons from the model

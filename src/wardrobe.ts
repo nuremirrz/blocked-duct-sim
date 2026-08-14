@@ -1,31 +1,29 @@
 import * as THREE from 'three'
 import type { SceneContext } from '@hvac/engine'
 
-const WARDROBE_NAME = 'wardrobe'
+// House_final.glb calls it `closet`; the old blockout model called it `wardrobe`.
+const WARDROBE_NAME = 'closet'
 
 /**
- * How the wardrobe rolls aside to clear the blocked supply.
+ * How the closet rolls aside to clear the blocked supply.
  *
- * ── TUNED in-scene with the debug panel (2026-07-26) ─────────────────────────
- * The wardrobe is a double-door cabinet whose doors face world +X, and the brief
- * is: slide it the way the doors face. The measured geometry agrees:
- *   • wardrobe world AABB X[3.61..4.66] Z[0.73..2.40], 2.79 tall;
- *   • the supply vent it blocks: ceiling, X[3.90..4.44];
- *   • +X (door side) is open — exterior wall at X≈6.46, ceiling flat at 2.87;
- *   • −X is the cabinet's back, flush against the partition (no room that way).
- * Sliding +X by 0.90 moves its near edge 3.61→4.51, just past the vent's far edge
- * (4.44) so the supply clears, and its far edge 4.66→5.56 stops well short of the
- * +X wall (6.46). Direction and distance were dialled in on the debug panel.
+ * ── Re-measured for House_final.glb ──────────────────────────────────────────
+ * Read off the GLB rather than dialled in by eye:
+ *   • closet world AABB X[5.40..6.02] Z[-0.22..1.64], 2.74 tall;
+ *   • the bedroom diffuser it stands beside: ceiling, X[6.55..7.09];
+ *   • −X is open floor all the way to the far bedroom; the ceiling sits at 2.84,
+ *     just above the closet, so it passes under everything on the way.
+ * Sliding −X by 1.20 takes it to X[4.20..4.82] — clear of the diffuser and
+ * visibly away from it, which is the whole point of the step. The camera looks
+ * back along −X, so the move reads as pushing the closet away from the vent.
  *
  * To retune: `axis` is the floor axis ('x' or 'z', never 'y'); `delta` is metres,
- * sign flips direction. On +X keep delta ≲ 1.8 (wall at 6.46) and ≥0.83 to clear
- * the vent.
+ * sign flips direction. Keep |delta| under ~9 on −X (far wall at −5.05).
  *
  * NB: this offsets the object's LOCAL position (like grille.ts), which equals its
- * world position here (parent is identity — local == world when measured), so 'x'
- * reads as a clean horizontal world move despite the wardrobe's own Y=90°.
+ * world position here (parent is identity — local == world when measured).
  */
-const MOVE_OFFSET: { axis: 'x' | 'z'; delta: number } = { axis: 'x', delta: 0.9 }
+const MOVE_OFFSET: { axis: 'x' | 'z'; delta: number } = { axis: 'x', delta: -1.2 }
 
 // Slide duration, matched to the grille's easing feel (~0.8s, smooth in/out).
 const SLIDE_SECONDS = 0.8

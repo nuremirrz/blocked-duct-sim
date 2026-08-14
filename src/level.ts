@@ -1,3 +1,4 @@
+import * as THREE from 'three'
 import {
   activeCameraPreset,
   type AirflowVisual,
@@ -6,6 +7,7 @@ import {
   type HudProgressBase,
   type LabelConfig,
   type ReadingTaker,
+  type SceneContext,
   type StateConfig,
   type TaskConfig,
   type Tool,
@@ -14,26 +16,62 @@ import type { WardrobeApi } from './wardrobe'
 
 // Fixed inspection viewpoints, named for the HVAC stage each one frames. The
 // coordinates belong to this level's model; the first is the starting camera.
+//
+// Re-aimed for House_final.glb. The wide shot frames the whole house, which is
+// deep now (7.7 across Z, was a near-flat 4.85). The supply station is pulled
+// back and swung between the diffuser and the closet so both are in one frame —
+// this level is about the thing standing in the way, so the two have to be seen
+// together rather than the register alone.
 export const CAMERAS: CameraPreset[] = [
   {
     name: 'system_overview',
-    position: { x: 6.29, y: 1.6, z: -12.54 },
-    target: { x: 1.13, y: 2.98, z: 0.82 },
+    position: { x: 7, y: 6.5, z: -19 },
+    target: { x: 3.4, y: 1.4, z: 0.7 },
   },
   {
     name: 'supply_air',
-    position: { x: 4.62, y: 1.43, z: -1.08 },
-    target: { x: 4.17, y: 2.84, z: 0.71 },
+    position: { x: 7.1, y: 1.0, z: -1.7 },
+    target: { x: 7.1, y: 2.4, z: 1.0 },
   },
   {
     name: 'return_air',
-    position: { x: 2.05, y: 0.19, z: -0.34 },
-    target: { x: 2.05, y: 2.84, z: 0.71 },
+    position: { x: 4.0, y: 0.9, z: -1.6 },
+    target: { x: 5.29, y: 2.84, z: 0.72 },
   },
 ]
 
 // Stations you can look closer at — everything except the wide overview.
 export const INSPECTABLE = ['supply_air', 'return_air']
+
+/**
+ * Swaps the closet with the bed it shares the house with.
+ *
+ * The model parks the closet out by the return grille, a room away from the
+ * diffuser this level is about — so "the closet is blocking the supply" reads as
+ * a claim about something off-screen. The bed stands in the bedroom the diffuser
+ * feeds, which is where the closet needs to be, so the two trade places.
+ *
+ * Only the floor plane is swapped. Each keeps its own height: they sit on the
+ * same floor but are 2.74 and 0.91 tall, and trading Y as well would bury one
+ * and float the other. Positions are swapped in world space and converted back
+ * through each parent, since the two nodes hang off different ones.
+ */
+export function swapClosetAndBed(ctx: SceneContext): void {
+  const closet = ctx.scene.getObjectByName('closet')
+  const bed = ctx.scene.getObjectByName('bed_1')
+  if (!closet || !bed) return
+
+  const closetAt = closet.getWorldPosition(new THREE.Vector3())
+  const bedAt = bed.getWorldPosition(new THREE.Vector3())
+
+  const place = (obj: THREE.Object3D, x: number, z: number, keepY: number) => {
+    const world = new THREE.Vector3(x, keepY, z)
+    obj.parent?.worldToLocal(world)
+    obj.position.copy(world)
+  }
+  place(closet, bedAt.x, bedAt.z, closetAt.y)
+  place(bed, closetAt.x, closetAt.z, bedAt.y)
+}
 
 /**
  * Airflow at the supply, in m/s: the wardrobe chokes it, moving it aside
@@ -48,7 +86,7 @@ export function createFlow(wardrobe: WardrobeApi): () => number {
 
 /** The one visible stream on this level, off the same flow. */
 export function createAirflowConfig(flow: () => number): AirflowVisual[] {
-  return [{ objectName: 'supply_duct', flow }]
+  return [{ objectName: 'supply_bedroom1', flow }]
 }
 
 export type GameState =
@@ -67,12 +105,12 @@ export interface TaskProgress extends HudProgressBase {
 // GLB object each label rides on, its i18n key, and the steps it lights up on.
 export const LABELS: LabelConfig[] = [
   {
-    objectName: 'supply_duct',
+    objectName: 'supply_bedroom1',
     labelKey: 'label.supply',
     activeOnStates: ['measure_low', 'measure_ok'],
   },
   {
-    objectName: 'wardrobe',
+    objectName: 'closet',
     labelKey: 'label.wardrobe',
     activeOnStates: ['locate_block', 'move_wardrobe'],
   },
@@ -161,7 +199,7 @@ export function createTools(hud: ReadingTaker): Tool[] {
       labelKey: 'tool.anemometer',
       iconNode: 'anemometer',
       // The device parks on the supply grille while measuring, so accept either.
-      targetNodes: ['supply_duct', 'anemometer'],
+      targetNodes: ['supply_bedroom1', 'anemometer'],
       usable: () => hud.canTakeReading(),
       apply: () => hud.takeReading(),
     },
@@ -171,7 +209,7 @@ export function createTools(hud: ReadingTaker): Tool[] {
 /** Clickable objects: a click travels to them, then acts once already framed. */
 export function createClickTargets(wardrobe: WardrobeApi, hud: ReadingTaker): ClickTarget[] {
   return [
-    { objectName: 'supply_duct', preset: 'supply_air' },
+    { objectName: 'supply_bedroom1', preset: 'supply_air' },
     // The device only exists while measuring, and the step already parks the
     // camera on it — so a click is always its own button, never a trip.
     {
@@ -183,6 +221,6 @@ export function createClickTargets(wardrobe: WardrobeApi, hud: ReadingTaker): Cl
     // The wardrobe sits in the supply view, so from there a click is its own
     // button. It slides freely either way at any time — move it aside or put it
     // back — and the airflow reading tracks whichever side it ends up on.
-    { objectName: 'wardrobe', preset: 'supply_air', act: () => wardrobe.toggle() },
+    { objectName: 'closet', preset: 'supply_air', act: () => wardrobe.toggle() },
   ]
 }
